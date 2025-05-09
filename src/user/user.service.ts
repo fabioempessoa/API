@@ -33,6 +33,11 @@ export class UserService {
           
     }
 
+    async emailExists(email: string): Promise<boolean> {
+        const count = await this.prisma.users.count({ where: { email } });
+        return count > 0;
+    }
+
     async update(id: number, {email, name, password, birthAt}: UpdatePutUserDTO) {
         
         
