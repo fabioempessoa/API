@@ -1,4 +1,4 @@
-import {Controller, Post, Body, Get, Param, Put, Patch, Delete, ParseIntPipe} from "@nestjs/common"   
+import { Controller, Post, Body, Get, Param, Put, Patch, Delete, ParseIntPipe, ConflictException } from "@nestjs/common";
 import { UpdatePutUserDTO } from "./dto/update-put-user-dto";
 import { CreateUserDTO } from "./dto/create-user.dto";
 import { UpdatePatchUserDTO } from "./dto/update-patch-user-dto";
@@ -6,35 +6,47 @@ import { UserService } from "./user.service";
 
 @Controller('users')
 export class UserController {
+    constructor(private readonly userService: UserService) {}
 
-    constructor(private readonly userService: UserService){}
+    private async handleIdParam(@Param('id', ParseIntPipe) id: number) {
+        await this.userService.exists(id); // Verifica se o usuário existe
+        return id;
+    }
 
-    @Post() 
-    async create(@Body() data: CreateUserDTO) {             
+    @Post()
+    async create(@Body() data: CreateUserDTO) {
+
+        const emailExists = await this.userService.emailExists(data.email);
+        if (emailExists) {
+            throw new ConflictException('Email já está em uso');
+        }
+
         return this.userService.create(data);
     }
 
     @Get()
-    async list() {
+    list() {
         return this.userService.list();
     }
 
     @Get(':id')
-    async show(@Param('id', ParseIntPipe) id: number) {
+    show(@Param('id', ParseIntPipe) id: number) {
         return this.userService.show(id);
     }
+
     @Put(':id')
-     async update(@Body() data: UpdatePutUserDTO, @Param('id', ParseIntPipe) id: number) {
+    update(@Body() data: UpdatePutUserDTO, @Param('id', ParseIntPipe) id: number) {
         return this.userService.update(id, data);
-     }
+    }
 
     @Patch(':id')
-     async updatePartial(@Body() data: UpdatePatchUserDTO, @Param('id', ParseIntPipe) id: number){
-        return this.userService.updatePartial(id, data); 
-     }
-     @Delete(':id')
-     async delete(@Param('id', ParseIntPipe) id: number) {
-        this.userService.exists
-        return this.userService.delete(id);  
-     }
+    updatePartial(@Body() data: UpdatePatchUserDTO, @Param('id', ParseIntPipe) id: number) {
+        return this.userService.updatePartial(id, data);
+    }
+
+    @Delete(':id')
+    async delete(@Param('id', ParseIntPipe) id: number) {
+        await this.handleIdParam(id);
+        return this.userService.delete(id);
+    }
 }
